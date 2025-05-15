@@ -2,7 +2,6 @@ package org.example.pawtracksbe.service;
 
 import org.example.pawtracksbe.dto.BulkAddPaymentsResponseDto;
 import org.example.pawtracksbe.dto.CreatePaymentRequestDto;
-import org.example.pawtracksbe.dto.PaymentErrorDetailDto;
 import org.example.pawtracksbe.dto.PaymentResponseDto;
 import org.example.pawtracksbe.entity.Owner;
 import org.example.pawtracksbe.entity.Payment;

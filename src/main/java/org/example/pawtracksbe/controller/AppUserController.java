@@ -2,7 +2,6 @@ package org.example.pawtracksbe.controller;
 
 import org.example.pawtracksbe.dto.CreateUserRequestDto;
 import org.example.pawtracksbe.dto.UserResponseDto;
-import org.example.pawtracksbe.entity.AppUser;
 import org.example.pawtracksbe.service.AppUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

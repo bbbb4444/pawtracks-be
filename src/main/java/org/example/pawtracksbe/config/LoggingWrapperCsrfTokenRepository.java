@@ -9,7 +9,6 @@ import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.DeferredCsrfToken; // Keep this import
 
 import java.util.UUID;
-import java.util.function.Supplier;
 
 public class LoggingWrapperCsrfTokenRepository implements CsrfTokenRepository {
     private static final Logger log = LoggerFactory.getLogger(LoggingWrapperCsrfTokenRepository.class);
