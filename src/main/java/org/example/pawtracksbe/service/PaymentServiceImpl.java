@@ -3,6 +3,7 @@ package org.example.pawtracksbe.service;
 import org.example.pawtracksbe.dto.BulkAddPaymentsResponseDto;
 import org.example.pawtracksbe.dto.CreatePaymentRequestDto;
 import org.example.pawtracksbe.dto.PaymentResponseDto;
+import org.example.pawtracksbe.dto.UpdatePaymentRequestDto;
 import org.example.pawtracksbe.entity.Owner;
 import org.example.pawtracksbe.entity.Payment;
 import org.example.pawtracksbe.exception.ResourceNotFoundException;
@@ -62,7 +63,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional()
-    public PaymentResponseDto updatePayment(Long id, CreatePaymentRequestDto updatePaymentRequestDto) {
+    public PaymentResponseDto updatePayment(Long id, UpdatePaymentRequestDto updatePaymentRequestDto) {
         Payment existingPayment = paymentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
 

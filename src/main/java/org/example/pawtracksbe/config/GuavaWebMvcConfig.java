@@ -33,12 +33,5 @@ class GuavaWebMvcConfig implements WebMvcConfigurer {
 
         registry.addInterceptor(new GuavaRateLimitInterceptor(registerRateLimiterCache, "RegisterLimiter"))
                 .addPathPatterns("/api/auth/register");
-
-        registry.addInterceptor(new GuavaRateLimitInterceptor(defaultApiRateLimiterCache, "DefaultApiLimiter"))
-                .addPathPatterns("/api/**")
-                .excludePathPatterns(
-                        "/api/auth/login",
-                        "/api/auth/register"
-                );
     }
 }

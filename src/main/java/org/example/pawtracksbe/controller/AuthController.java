@@ -79,17 +79,20 @@ public class AuthController {
 
 
     @GetMapping("/csrf")
-    public ResponseEntity<?> getCsrfToken(CsrfToken token) { // Inject CsrfToken directly
+    public ResponseEntity<?> getCsrfToken(CsrfToken token) {
         if (token != null) {
-            // By injecting CsrfToken, Spring ensures it's generated/loaded.
-            // The CookieCsrfTokenRepository should then ensure it's set in the response cookie.
             log.info("CSRF Token in /api/auth/csrf endpoint (via injection): HeaderName=[{}], ParameterName=[{}], TokenValue=[{}]",
                     token.getHeaderName(), token.getParameterName(), token.getToken());
+            Map<String, String> tokenMap = new HashMap<>();
+            tokenMap.put("token", token.getToken());
+            tokenMap.put("headerName", token.getHeaderName());
+            tokenMap.put("parameterName", token.getParameterName());
+            return ResponseEntity.ok(tokenMap);
         } else {
-            // This case should be rare if CSRF is properly configured.
             log.warn("/api/auth/csrf endpoint: CsrfToken (via injection) was null. Check CSRF configuration.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("{\"error\": \"CSRF token not available from server.\"}");
         }
-        return ResponseEntity.ok().body("{\"message\": \"CSRF token endpoint reached, token should be in cookie if generated\"}");
     }
 
     /**
@@ -99,21 +102,21 @@ public class AuthController {
      * @param createUserRequestDto DTO containing user registration details.
      * @return ResponseEntity containing the created user details or an error.
      */
-    @PostMapping("/register")
-    public ResponseEntity<UserResponseDto> registerUser(@Valid @RequestBody CreateUserRequestDto createUserRequestDto) {
-        try {
-            log.info("Attempting registration for username: {}", createUserRequestDto.getUsername());
-            UserResponseDto createdUser = appUserService.createUser(createUserRequestDto);
-            log.info("Registration successful for username: {}", createUserRequestDto.getUsername());
-            return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
-        } catch (IllegalArgumentException e) {
-            log.warn("Registration failed: {}", e.getMessage());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
-        } catch (Exception e) {
-            log.error("Unexpected error during registration for username: {}", createUserRequestDto.getUsername(), e);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred during registration.", e);
-        }
-    }
+//    @PostMapping("/register")
+//    public ResponseEntity<UserResponseDto> registerUser(@Valid @RequestBody CreateUserRequestDto createUserRequestDto) {
+//        try {
+//            log.info("Attempting registration for username: {}", createUserRequestDto.getUsername());
+//            UserResponseDto createdUser = appUserService.createUser(createUserRequestDto);
+//            log.info("Registration successful for username: {}", createUserRequestDto.getUsername());
+//            return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
+//        } catch (IllegalArgumentException e) {
+//            log.warn("Registration failed: {}", e.getMessage());
+//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+//        } catch (Exception e) {
+//            log.error("Unexpected error during registration for username: {}", createUserRequestDto.getUsername(), e);
+//            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred during registration.", e);
+//        }
+//    }
 
     /**
      * Endpoint for user login.

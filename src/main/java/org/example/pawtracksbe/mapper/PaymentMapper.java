@@ -4,6 +4,7 @@ package org.example.pawtracksbe.mapper;
 import org.example.pawtracksbe.dto.CreatePaymentRequestDto;
 import org.example.pawtracksbe.dto.OwnerSummaryDto; // Import
 import org.example.pawtracksbe.dto.PaymentResponseDto;
+import org.example.pawtracksbe.dto.UpdatePaymentRequestDto;
 import org.example.pawtracksbe.entity.Owner; // Import
 import org.example.pawtracksbe.entity.Payment;
 import org.mapstruct.Mapper;
@@ -27,7 +28,7 @@ public interface PaymentMapper {
     List<PaymentResponseDto> paymentsToPaymentResponseDtos(List<Payment> payments);
 
     @Mapping(target = "id", ignore = true)
-    void updatePaymentFromDto(CreatePaymentRequestDto dto, @MappingTarget Payment payment);
+    void updatePaymentFromDto(UpdatePaymentRequestDto dto, @MappingTarget Payment payment);
 
     OwnerSummaryDto ownerToOwnerSummaryDto(Owner owner);
 }

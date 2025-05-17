@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import org.example.pawtracksbe.dto.BulkAddPaymentsResponseDto;
 import org.example.pawtracksbe.dto.CreatePaymentRequestDto; // Use this for create/update
 import org.example.pawtracksbe.dto.PaymentResponseDto;
+import org.example.pawtracksbe.dto.UpdatePaymentRequestDto;
 import org.example.pawtracksbe.service.PaymentService; // Inject PaymentService
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -46,7 +47,7 @@ public class PaymentController {
     @PutMapping("/{id}")
     public ResponseEntity<PaymentResponseDto> updatePayment(
             @PathVariable Long id,
-            @Valid @RequestBody CreatePaymentRequestDto updatePaymentRequestDto) {
+            @Valid @RequestBody UpdatePaymentRequestDto updatePaymentRequestDto) {
         PaymentResponseDto updatedPayment = paymentService.updatePayment(id, updatePaymentRequestDto);
         return ResponseEntity.ok(updatedPayment);
     }
