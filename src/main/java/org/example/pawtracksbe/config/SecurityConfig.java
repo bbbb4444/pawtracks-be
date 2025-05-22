@@ -1,10 +1,14 @@
 package org.example.pawtracksbe.config;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.example.pawtracksbe.security.JwtAuthenticationFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -29,6 +33,8 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    private static final Logger authEntryPointLogger = LoggerFactory.getLogger(SecurityConfig.class.getName() + ".AuthenticationEntryPoint");
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -126,7 +132,22 @@ public class SecurityConfig {
                 )
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            authEntryPointLogger.warn("Responding with 401 due to AuthenticationEntryPoint. Request URI: {}, Auth Exception: {}",
+                                    request.getRequestURI(), authException.getMessage());
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            response.getWriter().write(
+                                    "{\"timestamp\":\"" + java.time.Instant.now().toString() + "\"," +
+                                            "\"status\":401," +
+                                            "\"error\":\"Unauthorized\"," +
+                                            "\"message\":\"Full authentication is required to access this resource. " + authException.getMessage() + "\"," +
+                                            "\"path\":\"" + request.getRequestURI() + "\"}"
+                            );
+                        })
+                );;
 
         return http.build();
     }

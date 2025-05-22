@@ -83,6 +83,9 @@ public class AuthController {
     @Value("${app.jwt.refresh.cookie.sameSite}")
     private String jwtRefreshCookieSameSite;
 
+    @Value("${app.jwt.refresh.expiration-ms}")
+    private long jwtRefreshCookieExpiration;
+
     // CSRF
     @Value("${app.csrf.cookie.name}")
     private String csrfCookieName;
@@ -193,7 +196,7 @@ public class AuthController {
                 refreshTokenCookie.setHttpOnly(jwtRefreshCookieHttpOnly);
                 refreshTokenCookie.setSecure(jwtRefreshCookieSecure);
                 refreshTokenCookie.setPath("/");
-                refreshTokenCookie.setMaxAge((int) (jwtService.getJwtExpirationMs() / 1000));
+                refreshTokenCookie.setMaxAge((int) (jwtRefreshCookieExpiration / 1000));
                 if (jwtRefreshCookieSameSite != null && !jwtRefreshCookieSameSite.isBlank()) {
                     refreshTokenCookie.setAttribute("SameSite", jwtRefreshCookieSameSite);
                 }
