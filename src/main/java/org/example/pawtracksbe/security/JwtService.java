@@ -45,7 +45,6 @@ public class JwtService {
         this.jwtExpirationMs = jwtExpirationMs;
     }
 
-    // Initialize the key and parser after properties are injected
     @PostConstruct
     public void init() {
         if (secretKeyString == null || secretKeyString.isBlank()) {
@@ -68,7 +67,6 @@ public class JwtService {
         }
 
         this.jwtSigningKey = Keys.hmacShaKeyFor(keyBytes);
-        // Build the parser once, using the key
         this.jwtParser = Jwts.parser().verifyWith(this.jwtSigningKey).build();
         log.info("JwtService initialized successfully with HS512 algorithm.");
         log.info("JWT expiration time set to {} ms", jwtExpirationMs);

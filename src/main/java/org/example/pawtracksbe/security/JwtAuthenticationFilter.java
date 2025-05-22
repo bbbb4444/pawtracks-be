@@ -13,6 +13,7 @@ import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -62,8 +63,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
 
-        // 2. If not found in cookie, try to extract from Authorization header (optional fallback)
-        //    For a purely cookie-based web app, you might remove this header check eventually.
+        // 2. If not found in cookie, try to extract from Authorization header
         if (jwt == null || jwt.isBlank()) {
             final String authHeader = request.getHeader("Authorization");
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
@@ -84,46 +84,51 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // 4. Check if subject exists and if user is not already authenticated
             if (userSubject != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                // Load UserDetails from the database via UserDetailsService
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userSubject);
 
                 // 5. Validate the token (checks signature, expiration, and if subject matches UserDetails)
                 if (jwtService.isTokenValid(jwt, userDetails)) {
-                    // If token is valid, create an Authentication object
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userDetails,        // Principal (the user)
-                            null,               // Credentials (not needed for JWT auth with cookies/bearer)
-                            userDetails.getAuthorities() // User's roles/permissions
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities()
                     );
 
-                    // Set additional details about the authentication request
-                    authToken.setDetails(
-                            new WebAuthenticationDetailsSource().buildDetails(request)
-                    );
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                     // 6. Update the SecurityContextHolder with the new authentication token
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                     log.debug("User '{}' authenticated successfully via JWT.", userSubject);
                 } else {
-                    log.warn("JWT token validation failed for user: {}", userSubject);
+                    log.warn("JWT token validation failed for user (isTokenValid returned false): {}", userSubject);
+                    SecurityContextHolder.clearContext();
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                    response.getWriter().write("{\"error\":\"Unauthorized\", \"message\":\"JWT token validation failed\"}");
+                    return;
                 }
             }
         } catch (ExpiredJwtException e) {
             log.warn("JWT token is expired: {}", e.getMessage());
-            // Consider how you want to handle expired tokens.
-            // For an API, usually, you just let it proceed, and the lack of authentication
-            // will result in a 401/403 further down the chain if the endpoint is protected.
-            // Or, you could explicitly send a 401 here.
-        } catch (UnsupportedJwtException e) {
-            log.warn("JWT token is unsupported: {}", e.getMessage());
-        } catch (MalformedJwtException e) {
-            log.warn("JWT token is malformed: {}", e.getMessage());
-        } catch (SignatureException e) {
-            log.warn("JWT signature validation failed: {}", e.getMessage());
-        } catch (IllegalArgumentException e) {
-            log.warn("JWT claims string is empty, null, or invalid: {}", e.getMessage());
+            SecurityContextHolder.clearContext();
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.getWriter().write("{\"error\":\"Unauthorized\", \"message\":\"JWT token has expired\"}");
+            return;
+        } catch (UnsupportedJwtException | MalformedJwtException | SignatureException | IllegalArgumentException e) {
+            log.warn("Invalid JWT token (unsupported, malformed, signature, or illegal arg): {}", e.getMessage());
+            SecurityContextHolder.clearContext();
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.getWriter().write("{\"error\":\"Unauthorized\", \"message\":\"Invalid JWT token\"}");
+            return;
         } catch (Exception e) {
-            log.error("Could not set user authentication in security context for request to {}: {}", request.getRequestURI(), e.getMessage(), e);
+            log.error("JWT authentication processing error for request to {}: {}", request.getRequestURI(), e.getMessage(), e);
+            SecurityContextHolder.clearContext();
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.getWriter().write("{\"error\":\"Unauthorized\", \"message\":\"Error processing authentication token\"}");
+            return;
         }
 
         filterChain.doFilter(request, response);

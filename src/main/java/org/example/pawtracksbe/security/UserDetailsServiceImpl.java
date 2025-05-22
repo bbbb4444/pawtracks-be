@@ -71,10 +71,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
      */
     private List<GrantedAuthority> mapRolesToAuthorities(Collection<String> roles) {
         if (roles == null || roles.isEmpty()) {
-            return List.of(); // Return an empty list if no roles are assigned
+            return List.of();
         }
         return roles.stream()
-                .map(SimpleGrantedAuthority::new) // Convert each role string to a SimpleGrantedAuthority
+                .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
     }
 }
