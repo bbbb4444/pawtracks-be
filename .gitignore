@@ -33,3 +33,5 @@ build/
 .vscode/
 
 /src/main/resources/application.properties
+/src/main/resources/google-credentials.json
+google-credentials.json

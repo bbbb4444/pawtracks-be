@@ -30,14 +30,11 @@ public class Payment {
     @Column(name = "payment_date", nullable = false)
     private LocalDate date;
 
-    @NotNull(message = "Owner is required for a payment")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "owner_id", nullable = false)
+    @JoinColumn(name = "owner_id", nullable = true)
     private Owner owner;
 
-    @NotNull(message = "Number of visits is required")
-    @Min(value = 1, message = "Must have at least 1 visit")
-    @Column(name = "visits", nullable = false)
+    @Column(name = "visits", nullable = true)
     private Integer visits;
 
     @NotBlank(message = "Payment method is required")

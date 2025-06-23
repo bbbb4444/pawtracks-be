@@ -1,9 +1,6 @@
 package org.example.pawtracksbe.service;
 
-import org.example.pawtracksbe.dto.BulkAddPaymentsResponseDto;
-import org.example.pawtracksbe.dto.CreatePaymentRequestDto;
-import org.example.pawtracksbe.dto.PaymentResponseDto;
-import org.example.pawtracksbe.dto.UpdatePaymentRequestDto;
+import org.example.pawtracksbe.dto.*;
 
 import java.util.List;
 
@@ -14,4 +11,5 @@ public interface PaymentService {
     void deletePayment(Long id);
     PaymentResponseDto getPaymentById(Long id);
     BulkAddPaymentsResponseDto addBulkPayments(List<CreatePaymentRequestDto> paymentRequests);
+    List<ParsedPaymentDto> parseSheet(String sheetUrl);
 }

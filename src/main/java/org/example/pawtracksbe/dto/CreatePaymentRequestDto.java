@@ -8,7 +8,6 @@ import java.time.LocalDate;
 @Data
 public class CreatePaymentRequestDto {
 
-    @NotNull(message = "Owner ID is required")
     private Long ownerId;
 
     @NotNull(message = "Amount is required")
@@ -19,8 +18,6 @@ public class CreatePaymentRequestDto {
     @NotNull(message = "Payment date is required")
     private LocalDate date;
 
-    @NotNull(message = "Number of visits is required")
-    @Min(value = 1, message = "Must have at least 1 visit")
     private Integer visits;
 
     @NotBlank(message = "Payment method is required")

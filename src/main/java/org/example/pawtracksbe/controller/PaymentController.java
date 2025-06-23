@@ -1,12 +1,8 @@
-// src/main/java/org/example/pawtracksbe/controller/PaymentController.java
 package org.example.pawtracksbe.controller;
 
 import jakarta.validation.Valid;
-import org.example.pawtracksbe.dto.BulkAddPaymentsResponseDto;
-import org.example.pawtracksbe.dto.CreatePaymentRequestDto; // Use this for create/update
-import org.example.pawtracksbe.dto.PaymentResponseDto;
-import org.example.pawtracksbe.dto.UpdatePaymentRequestDto;
-import org.example.pawtracksbe.service.PaymentService; // Inject PaymentService
+import org.example.pawtracksbe.dto.*;
+import org.example.pawtracksbe.service.PaymentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -68,5 +64,11 @@ public class PaymentController {
             return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
         }
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/parse-sheet")
+    public ResponseEntity<List<ParsedPaymentDto>> parseSheet(@Valid @RequestBody ParseSheetRequestDto request) {
+        List<ParsedPaymentDto> parsedPayments = paymentService.parseSheet(request.getSheetUrl());
+        return ResponseEntity.ok(parsedPayments);
     }
 }
