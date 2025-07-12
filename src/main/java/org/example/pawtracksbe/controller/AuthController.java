@@ -249,6 +249,7 @@ public class AuthController {
                 .path("/")
                 .maxAge(0)
                 .sameSite(jwtCookieSameSite)
+                .domain(cookieDomain)
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, emptyAccessTokenCookie.toString());
 
@@ -258,6 +259,7 @@ public class AuthController {
                 .path("/")
                 .maxAge(0)
                 .sameSite(jwtRefreshCookieSameSite)
+                .domain(cookieDomain)
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, emptyRefreshTokenCookie.toString());
 
@@ -266,6 +268,7 @@ public class AuthController {
                 .maxAge(0)
                 .secure(csrfCookieSecure)
                 .sameSite(csrfCookieSameSite)
+                .domain(cookieDomain)
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, emptyCsrfTokenCookie.toString());
 
