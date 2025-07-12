@@ -9,4 +9,5 @@ public interface JwtRefreshService {
     Optional<RefreshToken> findByToken(String token);
     RefreshToken verifyExpiration(RefreshToken token);
     void deleteByUserId(Long userId);
+    void deleteByToken(String token);
 }

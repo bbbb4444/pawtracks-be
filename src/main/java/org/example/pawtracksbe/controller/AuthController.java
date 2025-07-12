@@ -15,7 +15,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -27,6 +29,7 @@ import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -56,6 +59,9 @@ public class AuthController {
         this.userDetailsService = userDetailsService;
         this.jwtRefreshRepository = jwtRefreshRepository;
     }
+
+    @Value("${app.cookie.domain}")
+    private String cookieDomain;
 
     // JWT
     @Value("${app.jwt.cookie.name}")
@@ -150,11 +156,11 @@ public class AuthController {
      * @param loginRequestDto DTO containing login credentials.
      * @return ResponseEntity containing the JWT or an error.
      */
+
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@Valid @RequestBody LoginRequestDto loginRequestDto,
                                        HttpServletRequest request,
                                        HttpServletResponse response) {
-        // Log all incoming headers for debugging CSRF
         Map<String, String> headers = new HashMap<>();
         Enumeration<String> headerNames = request.getHeaderNames();
         while (headerNames.hasMoreElements()) {
@@ -178,29 +184,30 @@ public class AuthController {
             if (authentication.isAuthenticated()) {
                 UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-                // Access Token
+                // === Use ResponseCookie Builder for Access Token ===
                 String accessToken = jwtService.generateToken(userDetails);
-                Cookie accessTokenCookie = new Cookie(jwtCookieName, accessToken);
-                accessTokenCookie.setHttpOnly(jwtCookieHttpOnly);
-                accessTokenCookie.setSecure(jwtCookieSecure);
-                accessTokenCookie.setPath("/");
-                accessTokenCookie.setMaxAge((int) (jwtService.getJwtExpirationMs() / 1000));
-                if (jwtCookieSameSite != null && !jwtCookieSameSite.isBlank()) {
-                    accessTokenCookie.setAttribute("SameSite", jwtCookieSameSite);
-                }
-                response.addCookie(accessTokenCookie);
+                ResponseCookie accessTokenCookie = ResponseCookie.from(jwtCookieName, accessToken)
+                        .httpOnly(jwtCookieHttpOnly)
+                        .secure(jwtCookieSecure)
+                        .path("/")
+                        .maxAge(Duration.ofMillis(jwtService.getJwtExpirationMs()))
+                        .sameSite(jwtCookieSameSite)
+                        .domain(cookieDomain)
+                        .build();
+                response.addHeader(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
 
-                // Refresh Token
+
+                // === Use ResponseCookie Builder for Refresh Token ===
                 RefreshToken refreshToken = jwtRefreshService.generateRefreshToken(userDetails.getUsername());
-                Cookie refreshTokenCookie = new Cookie(jwtRefreshCookieName, refreshToken.getToken());
-                refreshTokenCookie.setHttpOnly(jwtRefreshCookieHttpOnly);
-                refreshTokenCookie.setSecure(jwtRefreshCookieSecure);
-                refreshTokenCookie.setPath("/");
-                refreshTokenCookie.setMaxAge((int) (jwtRefreshCookieExpiration / 1000));
-                if (jwtRefreshCookieSameSite != null && !jwtRefreshCookieSameSite.isBlank()) {
-                    refreshTokenCookie.setAttribute("SameSite", jwtRefreshCookieSameSite);
-                }
-                response.addCookie(refreshTokenCookie);
+                ResponseCookie refreshTokenCookie = ResponseCookie.from(jwtRefreshCookieName, refreshToken.getToken())
+                        .httpOnly(jwtRefreshCookieHttpOnly)
+                        .secure(jwtRefreshCookieSecure)
+                        .path("/")
+                        .maxAge(Duration.ofMillis(jwtRefreshCookieExpiration))
+                        .sameSite(jwtRefreshCookieSameSite)
+                        .domain(cookieDomain)
+                        .build();
+                response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
 
                 log.info("Login successful, JWT cookie and refresh token set for username: {}", loginRequestDto.getUsername());
                 return ResponseEntity.ok().body("{\"message\": \"Login successful\"}");
@@ -222,51 +229,45 @@ public class AuthController {
     public ResponseEntity<?> logoutUser(HttpServletRequest request, HttpServletResponse response) {
         log.info("Attempting logout");
 
-        // Clear access token
-        Cookie jwtTokenCookie = new Cookie(jwtCookieName, null);
-        jwtTokenCookie.setHttpOnly(jwtCookieHttpOnly);
-        jwtTokenCookie.setSecure(jwtCookieSecure);
-        jwtTokenCookie.setPath("/");
-        jwtTokenCookie.setMaxAge(0);
-        if (jwtCookieSameSite != null && !jwtCookieSameSite.isBlank()) {
-            jwtTokenCookie.setAttribute("SameSite", jwtCookieSameSite);
-        }
-        response.addCookie(jwtTokenCookie);
-
-        // Clear refresh token (from db)
+        // Invalidate refresh token
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             for (Cookie cookie : cookies) {
                 if (jwtRefreshCookieName.equals(cookie.getName())) {
                     String tokenValue = cookie.getValue();
-                    jwtRefreshRepository.deleteByToken(tokenValue);
+                    jwtRefreshService.deleteByToken(tokenValue);
                     log.info("Refresh token invalidated from database.");
                     break;
                 }
             }
         }
-        // (from cookie)
-        Cookie refreshTokenCookie = new Cookie(jwtRefreshCookieName, null);
-        refreshTokenCookie.setHttpOnly(jwtCookieHttpOnly);
-        refreshTokenCookie.setSecure(jwtCookieSecure);
-        refreshTokenCookie.setPath("/");
-        refreshTokenCookie.setMaxAge(0);
-        if (jwtCookieSameSite != null && !jwtCookieSameSite.isBlank()) {
-            refreshTokenCookie.setAttribute("SameSite", jwtCookieSameSite);
-        }
-        response.addCookie(refreshTokenCookie);
 
-        // Clear CSRF token
-        Cookie csrfTokenCookie = new Cookie(csrfCookieName, null);
-        csrfTokenCookie.setHttpOnly(csrfCookieHttpOnly);
-        csrfTokenCookie.setSecure(csrfCookieSecure);
-        csrfTokenCookie.setPath(csrfCookiePath);
-        csrfTokenCookie.setMaxAge(0);
-        if (this.csrfCookieSameSite != null && !this.csrfCookieSameSite.isBlank()) {
-            csrfTokenCookie.setAttribute("SameSite", this.csrfCookieSameSite);
-        }
-        response.addCookie(csrfTokenCookie);
+        // Clear all cookies by creating expired cookies with the same properties
+        ResponseCookie emptyAccessTokenCookie = ResponseCookie.from(jwtCookieName, "")
+                .httpOnly(jwtCookieHttpOnly)
+                .secure(jwtCookieSecure)
+                .path("/")
+                .maxAge(0)
+                .sameSite(jwtCookieSameSite)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, emptyAccessTokenCookie.toString());
 
+        ResponseCookie emptyRefreshTokenCookie = ResponseCookie.from(jwtRefreshCookieName, "")
+                .httpOnly(jwtRefreshCookieHttpOnly)
+                .secure(jwtRefreshCookieSecure)
+                .path("/")
+                .maxAge(0)
+                .sameSite(jwtRefreshCookieSameSite)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, emptyRefreshTokenCookie.toString());
+
+        ResponseCookie emptyCsrfTokenCookie = ResponseCookie.from(csrfCookieName, "")
+                .path(csrfCookiePath)
+                .maxAge(0)
+                .secure(csrfCookieSecure)
+                .sameSite(csrfCookieSameSite)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, emptyCsrfTokenCookie.toString());
 
         log.info("Logout successful, JWT and CSRF cookies cleared.");
         return ResponseEntity.ok().body("{\"message\": \"Logout successful\"}");

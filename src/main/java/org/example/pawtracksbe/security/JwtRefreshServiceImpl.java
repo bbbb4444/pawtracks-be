@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -47,6 +48,7 @@ public class JwtRefreshServiceImpl implements JwtRefreshService {
         return jwtRefreshRepository.findByToken(token);
     }
 
+    @Transactional
     public RefreshToken verifyExpiration(RefreshToken token) {
         if (token.getExpiryDate().compareTo(Instant.now()) < 0) {
             jwtRefreshRepository.delete(token);
@@ -55,7 +57,13 @@ public class JwtRefreshServiceImpl implements JwtRefreshService {
         return token;
     }
 
+    @Transactional
     public void deleteByUserId(Long userId) {
         jwtRefreshRepository.deleteByUserId(userId);
+    }
+
+    @Transactional
+    public void deleteByToken(String token) {
+        jwtRefreshRepository.deleteByToken(token);
     }
 }
