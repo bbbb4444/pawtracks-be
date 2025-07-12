@@ -312,15 +312,15 @@ public class AuthController {
 
         String newAccessToken = jwtService.generateToken(userDetails);
 
-        Cookie newAccessTokenCookie = new Cookie(jwtCookieName, newAccessToken);
-        newAccessTokenCookie.setHttpOnly(jwtCookieHttpOnly);
-        newAccessTokenCookie.setSecure(jwtCookieSecure);
-        newAccessTokenCookie.setPath("/");
-        newAccessTokenCookie.setMaxAge((int) (jwtService.getJwtExpirationMs() / 1000));
-        if (jwtCookieSameSite != null && !jwtCookieSameSite.isBlank()) {
-            newAccessTokenCookie.setAttribute("SameSite", jwtCookieSameSite);
-        }
-        response.addCookie(newAccessTokenCookie);
+        ResponseCookie newAccessTokenCookie = ResponseCookie.from(jwtCookieName, newAccessToken)
+                .httpOnly(jwtCookieHttpOnly)
+                .secure(jwtCookieSecure)
+                .path("/")
+                .maxAge(Duration.ofMillis(jwtService.getJwtExpirationMs()))
+                .sameSite(jwtCookieSameSite)
+                .domain(cookieDomain)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, newAccessTokenCookie.toString());
 
         return ResponseEntity.ok().body("{\"message\": \"Access token refreshed\"}");
     }
