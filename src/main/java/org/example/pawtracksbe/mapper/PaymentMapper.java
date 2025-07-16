@@ -2,10 +2,10 @@
 package org.example.pawtracksbe.mapper;
 
 import org.example.pawtracksbe.dto.CreatePaymentRequestDto;
-import org.example.pawtracksbe.dto.OwnerSummaryDto; // Import
+import org.example.pawtracksbe.dto.OwnerSummaryDto;
 import org.example.pawtracksbe.dto.PaymentResponseDto;
 import org.example.pawtracksbe.dto.UpdatePaymentRequestDto;
-import org.example.pawtracksbe.entity.Owner; // Import
+import org.example.pawtracksbe.entity.Owner;
 import org.example.pawtracksbe.entity.Payment;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

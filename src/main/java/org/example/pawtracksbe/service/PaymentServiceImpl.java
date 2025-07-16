@@ -53,7 +53,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    @Transactional()
+    @Transactional
     public PaymentResponseDto createPayment(CreatePaymentRequestDto createPaymentRequestDto) {
         Payment payment = paymentMapper.createPaymentRequestDtoToPayment(createPaymentRequestDto);
 
@@ -71,7 +71,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    @Transactional()
+    @Transactional
     public PaymentResponseDto updatePayment(Long id, UpdatePaymentRequestDto updatePaymentRequestDto) {
         Payment existingPayment = paymentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
@@ -84,7 +84,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    @Transactional()
+    @Transactional
     public void deletePayment(Long id) {
         if (!paymentRepository.existsById(id)) {
             throw new ResourceNotFoundException("Payment not found");
@@ -103,28 +103,27 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional
     public BulkAddPaymentsResponseDto addBulkPayments(List<CreatePaymentRequestDto> paymentRequests) {
-
         List<Payment> paymentsToSave = new ArrayList<>();
 
-for (int i = 0; i < paymentRequests.size(); i++) {
-    CreatePaymentRequestDto paymentRequest = paymentRequests.get(i);
-    log.debug("Processing payment request {}/{}: Owner ID {}", (i + 1), paymentRequests.size(), paymentRequest.getOwnerId());
+        for (int i = 0; i < paymentRequests.size(); i++) {
+            CreatePaymentRequestDto paymentRequest = paymentRequests.get(i);
+            log.debug("Processing payment request {}/{}: Owner ID {}", (i + 1), paymentRequests.size(), paymentRequest.getOwnerId());
 
-    Payment payment = paymentMapper.createPaymentRequestDtoToPayment(paymentRequest);
+            Payment payment = paymentMapper.createPaymentRequestDtoToPayment(paymentRequest);
 
-    if (paymentRequest.getOwnerId() != null) {
-        int index = i;
-        Owner owner = ownerRepository.findById(paymentRequest.getOwnerId())
-                .orElseThrow(() -> {
-                    log.error("Owner not found with id: {} for payment request at index {}", paymentRequest.getOwnerId(), index);
-                    return new ResourceNotFoundException("Owner not found with id: " + paymentRequest.getOwnerId() + " for payment at index " + index + ".");
-                });
-        payment.setOwner(owner);
-    } else {
-        payment.setOwner(null);
-    }
-    paymentsToSave.add(payment);
-}
+            if (paymentRequest.getOwnerId() != null) {
+                int index = i;
+                Owner owner = ownerRepository.findById(paymentRequest.getOwnerId())
+                        .orElseThrow(() -> {
+                            log.error("Owner not found with id: {} for payment request at index {}", paymentRequest.getOwnerId(), index);
+                            return new ResourceNotFoundException("Owner not found with id: " + paymentRequest.getOwnerId() + " for payment at index " + index + ".");
+                        });
+                payment.setOwner(owner);
+            } else {
+                payment.setOwner(null);
+            }
+            paymentsToSave.add(payment);
+        }
 
         List<Payment> savedPayments = paymentRepository.saveAll(paymentsToSave);
         log.info("Successfully saved {} payments in a single transaction.", savedPayments.size());
@@ -142,12 +141,10 @@ for (int i = 0; i < paymentRequests.size(); i++) {
                 throw new IllegalArgumentException("Invalid Google Sheet URL provided.");
             }
 
-            // Define the range to read. Assumes data is on a sheet named 'Sheet1'.
-            // Change 'Sheet1' if your sheet has a different name.
-            // A:I covers all columns from Timestamp to Visits.
-            final String range = "Form!A4000:I4020";
+            // Change 'Form' if needed.
+            // A:I covers all columns.
+            final String range = "Form!A:I";
 
-            // 2. Fetch data from Google Sheets API
             ValueRange response = sheetsService.spreadsheets().values()
                     .get(spreadsheetId, range)
                     .execute();
@@ -162,19 +159,16 @@ for (int i = 0; i < paymentRequests.size(); i++) {
 
             // 4. Process each row from the sheet
             List<ParsedPaymentDto> parsedPayments = new ArrayList<>();
-            // Skip header row (i = 0)
             for (int i = 1; i < values.size(); i++) {
                 List<Object> row = values.get(i);
                 ParsedPaymentDto dto = new ParsedPaymentDto();
 
-                // Safely get values from row
                 String timestamp = getCellStringValue(row, 0);
-                String earningsStr = getCellStringValue(row, 5); // Column F
-                String method = getCellStringValue(row, 6);      // Column G
-                String clientName = getCellStringValue(row, 7);   // Column H
-                String visitsStr = getCellStringValue(row, 8);    // Column I
+                String earningsStr = getCellStringValue(row, 5);
+                String method = getCellStringValue(row, 6);
+                String clientName = getCellStringValue(row, 7);
+                String visitsStr = getCellStringValue(row, 8);
 
-                // Skip row if essential data like timestamp or earnings is missing
                 if (!StringUtils.hasText(timestamp) || !StringUtils.hasText(earningsStr)) {
                     continue;
                 }
@@ -186,8 +180,6 @@ for (int i = 0; i < paymentRequests.size(); i++) {
                 try {
                     dto.setEarnings(new BigDecimal(earningsStr));
                 } catch (NumberFormatException e) {
-                    // Handle cases where earnings is not a valid number, maybe log it
-                    // For now, we'll skip this payment or set it to zero
                     dto.setEarnings(BigDecimal.ZERO);
                 }
 
@@ -195,7 +187,7 @@ for (int i = 0; i < paymentRequests.size(); i++) {
                     try {
                         dto.setVisits(Integer.parseInt(visitsStr));
                     } catch (NumberFormatException e) {
-                        dto.setVisits(null); // Or handle error
+                        dto.setVisits(null);
                     }
                 }
                 
@@ -213,14 +205,10 @@ for (int i = 0; i < paymentRequests.size(); i++) {
             return parsedPayments;
 
         } catch (IOException e) {
-            // A more specific exception might be better for the controller to handle
             throw new RuntimeException("Failed to read from Google Sheet. Check permissions and URL.", e);
         }
     }
 
-    /**
-     * Extracts the Google Sheet ID from a given URL.
-     */
     private String extractSheetId(String url) {
         Matcher matcher = SHEET_ID_PATTERN.matcher(url);
         if (matcher.find()) {
@@ -229,9 +217,6 @@ for (int i = 0; i < paymentRequests.size(); i++) {
         return null;
     }
 
-    /**
-     * Safely retrieves a string value from a row list, returning null if the index is out of bounds.
-     */
     private String getCellStringValue(List<Object> row, int index) {
         if (row != null && index < row.size()) {
             Object cell = row.get(index);
@@ -240,10 +225,6 @@ for (int i = 0; i < paymentRequests.size(); i++) {
         return null;
     }
 
-    /**
-     * Attempts to find a matching owner from a list of all owners based on the client name string.
-     * The matching logic is case-insensitive and checks against first name, last name, full name, and pet names.
-     */
     private Owner findMatchingOwner(String clientName, List<Owner> allOwners) {
         String normalizedClientName = clientName.trim().toLowerCase();
 
@@ -270,7 +251,6 @@ for (int i = 0; i < paymentRequests.size(); i++) {
             }
         }
 
-        // No match found
         return null;
     }
 }

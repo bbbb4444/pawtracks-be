@@ -60,7 +60,6 @@ public class JwtService {
             throw new IllegalArgumentException("jwt.secret-key must be Base64 encoded");
         }
 
-        // HS512 requires a key of at least 64 bytes (512 bits)
         if (keyBytes.length < 64) {
             log.error("FATAL: jwt.secret-key must be at least 64 bytes long for HS512 after Base64 decoding (was {} bytes)!", keyBytes.length);
             throw new IllegalArgumentException("jwt.secret-key must be at least 64 bytes for HS512");
@@ -71,7 +70,6 @@ public class JwtService {
         log.info("JwtService initialized successfully with HS512 algorithm.");
         log.info("JWT expiration time set to {} ms", jwtExpirationMs);
     }
-
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -110,9 +108,9 @@ public class JwtService {
             log.warn("JWT token is unsupported: {}", e.getMessage());
         } catch (IllegalArgumentException e) {
             log.warn("JWT claims string is empty or invalid: {}", e.getMessage());
-        } catch (SignatureException e) { // Catch specifically for signature validation failure
+        } catch (SignatureException e) {
             log.warn("JWT signature validation failed: {}", e.getMessage());
-        } catch (Exception e) { // Catch unexpected errors during validation
+        } catch (Exception e) {
             log.error("Unexpected error during token validation for user {}", userDetails.getUsername(), e);
         }
         return false;
@@ -140,7 +138,6 @@ public class JwtService {
     }
 
     private boolean isTokenExpired(String token) {
-        // Note: extractExpiration already handles parsing exceptions
         return extractExpiration(token).before(new Date());
     }
 
@@ -156,10 +153,9 @@ public class JwtService {
         return jwtSigningKey;
     }
 
-
     public String generateTokenExpiredMinutesAgo(UserDetails userDetails, long minutesAgo) {
         Instant now = Instant.now();
-        Instant expirationInstant = now.minus(minutesAgo, ChronoUnit.MINUTES); // Expiration in the past
+        Instant expirationInstant = now.minus(minutesAgo, ChronoUnit.MINUTES);
 
         Map<String, Object> claims = new HashMap<>();
         String roles = userDetails.getAuthorities().stream()
@@ -170,8 +166,8 @@ public class JwtService {
         return Jwts.builder()
                 .claims(claims)
                 .subject(userDetails.getUsername())
-                .issuedAt(Date.from(now)) // Issued now is fine
-                .expiration(Date.from(expirationInstant)) // EXPIRED date
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(expirationInstant))
                 .signWith(getJwtSigningKey())
                 .compact();
     }

@@ -1,4 +1,4 @@
-package org.example.pawtracksbe.config; // Or your appropriate config/security package
+package org.example.pawtracksbe.config;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -6,7 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
-import org.springframework.security.web.csrf.DeferredCsrfToken; // Keep this import
+import org.springframework.security.web.csrf.DeferredCsrfToken;
 
 import java.util.UUID;
 
@@ -23,8 +23,6 @@ public class LoggingWrapperCsrfTokenRepository implements CsrfTokenRepository {
         log.info("LoggingWrapperCsrfTokenRepository [{}] initialized, wrapping delegate: {}",
                 repositoryId, delegate.getClass().getName());
     }
-
-    // generateToken, saveToken, loadToken methods remain the same as previously provided
 
     @Override
     public CsrfToken generateToken(HttpServletRequest request) {
@@ -77,27 +75,22 @@ public class LoggingWrapperCsrfTokenRepository implements CsrfTokenRepository {
         return token;
     }
 
-    // CORRECTED loadDeferredToken
     @Override
     public DeferredCsrfToken loadDeferredToken(HttpServletRequest request, HttpServletResponse response) {
         String uri = request.getRequestURI();
         log.info("WRAPPER [{}] > loadDeferredToken - URI: {}", repositoryId, uri);
 
-        // Call the delegate's loadDeferredToken. It will return its own DeferredCsrfToken (likely an instance of the internal DefaultDeferredCsrfToken).
         final DeferredCsrfToken delegateDeferredToken = delegate.loadDeferredToken(request, response);
 
-        // Wrap the DeferredCsrfToken returned by the delegate so we can log its operations
-        // without needing to know about DefaultDeferredCsrfToken.
         DeferredCsrfToken loggingDeferredToken = new DeferredCsrfToken() {
-            private CsrfToken cachedToken = null; // Cache to avoid multiple supplier calls if not needed by underlying
+            private CsrfToken cachedToken = null;
             private boolean hasBeenLoaded = false;
 
             @Override
             public CsrfToken get() {
-                // This logging happens when deferredCsrfToken.get() is called by CsrfFilter or CsrfTokenRequestHandler
                 log.info("WRAPPER [{}] DeferredCsrfToken.get() called - URI: {}", repositoryId, request.getRequestURI());
-                if (!hasBeenLoaded) { // Simple caching to mimic potential behavior, though underlying delegate might do its own
-                    cachedToken = delegateDeferredToken.get(); // Call the actual delegate's get()
+                if (!hasBeenLoaded) {
+                    cachedToken = delegateDeferredToken.get();
                     hasBeenLoaded = true;
                     if (cachedToken != null) {
                         log.info("WRAPPER [{}] DeferredCsrfToken.get() - Loaded from delegate: '{}'", repositoryId, cachedToken.getToken());
@@ -116,15 +109,6 @@ public class LoggingWrapperCsrfTokenRepository implements CsrfTokenRepository {
                 log.info("WRAPPER [{}] DeferredCsrfToken.isGenerated() called - URI: {}, Result: {}", repositoryId, request.getRequestURI(), isGen);
                 return isGen;
             }
-
-            // The save functionality is typically handled when the response is committed,
-            // often triggered by CsrfFilter's response wrapper.
-            // The runnable inside the original DefaultDeferredCsrfToken (created by the delegate)
-            // will call the delegate's saveToken(delegateSupplier.get(), ...).
-            // Our wrapped saveToken and loadToken methods will be hit if that's how the delegate is structured.
-            // We don't need to explicitly manage the save runnable here if we are just wrapping.
-            // The key is that the delegate's DeferredCsrfToken's supplier and runnable will eventually call
-            // the delegate's loadToken and saveToken, which our wrapper intercepts.
         };
 
         log.info("WRAPPER [{}] < loadDeferredToken - URI: {}, Wrapped delegate's DeferredCsrfToken.", repositoryId, uri);

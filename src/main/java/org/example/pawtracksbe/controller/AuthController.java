@@ -4,7 +4,9 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.example.pawtracksbe.dto.CreateUserRequestDto;
 import org.example.pawtracksbe.dto.LoginRequestDto;
+import org.example.pawtracksbe.dto.UserResponseDto;
 import org.example.pawtracksbe.entity.AppUser;
 import org.example.pawtracksbe.entity.RefreshToken;
 import org.example.pawtracksbe.repository.JwtRefreshRepository;
@@ -45,19 +47,19 @@ public class AuthController {
     private final JwtService jwtService;
     private final JwtRefreshService jwtRefreshService;
     private final UserDetailsService userDetailsService;
-    private final JwtRefreshRepository jwtRefreshRepository;
 
     @Autowired
     public AuthController(AppUserService appUserService,
                           AuthenticationManager authenticationManager,
                           JwtService jwtService,
-                          JwtRefreshService jwtRefreshService, UserDetailsService userDetailsService, JwtRefreshRepository jwtRefreshRepository) {
+                          JwtRefreshService jwtRefreshService, 
+                          UserDetailsService userDetailsService, 
+                          JwtRefreshRepository jwtRefreshRepository) {
         this.appUserService = appUserService;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.jwtRefreshService = jwtRefreshService;
         this.userDetailsService = userDetailsService;
-        this.jwtRefreshRepository = jwtRefreshRepository;
     }
 
     @Value("${app.cookie.domain}")
@@ -108,7 +110,6 @@ public class AuthController {
     @Value("${app.csrf.cookie.sameSite}")
     private String csrfCookieSameSite;
 
-
     @GetMapping("/csrf")
     public ResponseEntity<?> getCsrfToken(CsrfToken token) {
         if (token != null) {
@@ -126,36 +127,21 @@ public class AuthController {
         }
     }
 
-    /**
-     * Endpoint for user registration.
-     * Uses the existing AppUserService to create a new user.
-     *
-     * @param createUserRequestDto DTO containing user registration details.
-     * @return ResponseEntity containing the created user details or an error.
-     */
-//    @PostMapping("/register")
-//    public ResponseEntity<UserResponseDto> registerUser(@Valid @RequestBody CreateUserRequestDto createUserRequestDto) {
-//        try {
-//            log.info("Attempting registration for username: {}", createUserRequestDto.getUsername());
-//            UserResponseDto createdUser = appUserService.createUser(createUserRequestDto);
-//            log.info("Registration successful for username: {}", createUserRequestDto.getUsername());
-//            return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
-//        } catch (IllegalArgumentException e) {
-//            log.warn("Registration failed: {}", e.getMessage());
-//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
-//        } catch (Exception e) {
-//            log.error("Unexpected error during registration for username: {}", createUserRequestDto.getUsername(), e);
-//            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred during registration.", e);
-//        }
-//    }
-
-    /**
-     * Endpoint for user login.
-     * Authenticates the user and returns a JWT if successful.
-     *
-     * @param loginRequestDto DTO containing login credentials.
-     * @return ResponseEntity containing the JWT or an error.
-     */
+    @PostMapping("/register")
+    public ResponseEntity<UserResponseDto> registerUser(@Valid @RequestBody CreateUserRequestDto createUserRequestDto) {
+        try {
+            log.info("Attempting registration for username: {}", createUserRequestDto.getUsername());
+            UserResponseDto createdUser = appUserService.createUser(createUserRequestDto);
+            log.info("Registration successful for username: {}", createUserRequestDto.getUsername());
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
+        } catch (IllegalArgumentException e) {
+            log.warn("Registration failed: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("Unexpected error during registration for username: {}", createUserRequestDto.getUsername(), e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred during registration.", e);
+        }
+    }
 
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@Valid @RequestBody LoginRequestDto loginRequestDto,
@@ -171,7 +157,6 @@ public class AuthController {
         String receivedCsrfToken = request.getHeader("X-XSRF-TOKEN");
         log.info("Received X-XSRF-TOKEN header value: [{}]", receivedCsrfToken);
 
-
         log.info("Attempting login for username: {}", loginRequestDto.getUsername());
         try {
             Authentication authentication = authenticationManager.authenticate(
@@ -184,7 +169,6 @@ public class AuthController {
             if (authentication.isAuthenticated()) {
                 UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-                // === Use ResponseCookie Builder for Access Token ===
                 String accessToken = jwtService.generateToken(userDetails);
                 ResponseCookie accessTokenCookie = ResponseCookie.from(jwtCookieName, accessToken)
                         .httpOnly(jwtCookieHttpOnly)
@@ -196,8 +180,6 @@ public class AuthController {
                         .build();
                 response.addHeader(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
 
-
-                // === Use ResponseCookie Builder for Refresh Token ===
                 RefreshToken refreshToken = jwtRefreshService.generateRefreshToken(userDetails.getUsername());
                 ResponseCookie refreshTokenCookie = ResponseCookie.from(jwtRefreshCookieName, refreshToken.getToken())
                         .httpOnly(jwtRefreshCookieHttpOnly)

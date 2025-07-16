@@ -28,7 +28,7 @@ public class GuavaRateLimitInterceptor implements HandlerInterceptor {
         String ipAddress = getClientIP(request);
         if (ipAddress == null) {
             log.warn("GuavaRateLimitInterceptor ({}): Could not determine client IP. Allowing request.", rateLimiterName);
-            return true; // Or deny based on policy
+            return true;
         }
 
         RateLimiter limiter;
@@ -39,19 +39,15 @@ public class GuavaRateLimitInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        // tryAcquire() attempts to acquire a permit. Returns true if acquired, false otherwise.
-        // It does not block.
         if (limiter.tryAcquire()) {
             log.debug("GuavaRateLimitInterceptor ({}): Permit acquired for IP {}.", rateLimiterName, ipAddress);
-            return true; // Request allowed
+            return true;
         } else {
-            response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value()); // 429
+            response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.getWriter().write("Too many requests. Please try again later.");
             log.warn("GuavaRateLimitInterceptor ({}): Rate limit exceeded for IP {}.", rateLimiterName, ipAddress);
-            // Guava's RateLimiter doesn't easily provide a "retry-after" time in the same way
-            // as Bucket4j's ConsumptionProbe. You could add a generic header.
-            response.addHeader("Retry-After", "60"); // Suggest retrying after 60 seconds (example)
-            return false; // Request denied
+            response.addHeader("Retry-After", "60");
+            return false;
         }
     }
 

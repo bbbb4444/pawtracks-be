@@ -8,7 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness; // Import for Strictness
+import org.mockito.quality.Strictness;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.GrantedAuthority;
@@ -29,7 +29,7 @@ class JwtServiceTest {
     private static final Logger log = LoggerFactory.getLogger(JwtServiceTest.class);
 
     private final String testSecretKeyBase64 = "eW91clN1cGVyU2VjcmV0QW5kTG9uZ0Vub3VnaEtleUZvclRlc3RpbmdIUzUxMkFsZ29yaXRobU11c3RCZUF0TGVhc3Q2NEJ5dGVzTG9uZw==";
-    private final long testExpirationMs = 3600000; // 1 hour
+    private final long testExpirationMs = 3600000;
 
     private JwtService jwtService;
 
@@ -41,8 +41,6 @@ class JwtServiceTest {
         jwtService = new JwtService(testSecretKeyBase64, testExpirationMs);
         jwtService.init();
 
-        // Configure the mock UserDetails
-        // These stubs will now be treated leniently due to @MockitoSettings at the class level
         when(mockUserDetails.getUsername()).thenReturn("testuser");
         Collection<? extends GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
         when(mockUserDetails.getAuthorities()).thenReturn((Collection) authorities);
@@ -77,7 +75,6 @@ class JwtServiceTest {
         }, "Extracting username from an expired token should throw ExpiredJwtException");
 
         log.info("Successfully caught expected exception: {}, Message: {}", exception.getClass().getSimpleName(), exception.getMessage());
-        // Make the assertion more robust by checking the start of the message
         assertTrue(exception.getMessage().startsWith("JWT expired"),
                 "Exception message should start with 'JWT expired'. Actual: " + exception.getMessage());
     }
@@ -101,9 +98,8 @@ class JwtServiceTest {
         String validToken = jwtService.generateToken(mockUserDetails);
         assertNotNull(validToken, "Valid token for signature test should not be null");
 
-        String tamperedToken = validToken + "a"; // Tamper the token
+        String tamperedToken = validToken + "a";
         log.debug("Tampered token (first few chars): {}", tamperedToken.substring(0, Math.min(tamperedToken.length(), 10)));
-
 
         boolean isValid = jwtService.isTokenValid(tamperedToken, mockUserDetails);
         log.info("Validation result for tampered token: {}", isValid);
@@ -118,7 +114,7 @@ class JwtServiceTest {
     @Test
     void isTokenValid_shouldReturnFalse_whenUsernameDoesNotMatch() {
         log.info("Running test: isTokenValid_shouldReturnFalse_whenUsernameDoesNotMatch");
-        String validToken = jwtService.generateToken(mockUserDetails); // Token for "testuser"
+        String validToken = jwtService.generateToken(mockUserDetails);
         assertNotNull(validToken, "Valid token for username mismatch test should not be null");
 
         UserDetails differentUserDetails = User.builder()
@@ -127,7 +123,6 @@ class JwtServiceTest {
                 .authorities("ROLE_USER")
                 .build();
         log.debug("Generated valid token for 'testuser' (first few chars): {}", validToken.substring(0, Math.min(validToken.length(), 10)));
-
 
         boolean isValid = jwtService.isTokenValid(validToken, differentUserDetails);
         log.info("Validation result for token with mismatched user: {}", isValid);

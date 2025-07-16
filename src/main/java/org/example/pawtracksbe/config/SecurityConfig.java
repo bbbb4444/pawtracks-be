@@ -147,7 +147,7 @@ public class SecurityConfig {
                                             "\"path\":\"" + request.getRequestURI() + "\"}"
                             );
                         })
-                );;
+                );
 
         return http.build();
     }

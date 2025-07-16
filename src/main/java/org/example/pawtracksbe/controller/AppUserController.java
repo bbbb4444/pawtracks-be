@@ -22,7 +22,7 @@ public class AppUserController {
     @PostMapping
     public ResponseEntity<UserResponseDto> addUser(@RequestBody CreateUserRequestDto createUserRequestDto) {
         UserResponseDto createdUser = appUserService.createUser(createUserRequestDto);
-        return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
     }
 
     @GetMapping("/{id}")
